@@ -14,7 +14,7 @@ import (
 )
 
 var definedLanguages = map[string]string{}
-var configPath = "~/.config/boil"
+var configPath = "~/.config/boil/cauldron"
 
 func constructLanguage(f os.FileInfo, path string) {
 	extensions := strings.Split(f.Name(), ".")[1:]
