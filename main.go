@@ -79,11 +79,12 @@ a touch wrapper to generate boilerplate files.
 	}
 }
 
-func copyBoilerplate(src, dst string) (err error) {
+func copyBoilerplate(src, dst string) (nonEmpty bool, err error) {
 	currentPathContents, err := ioutil.ReadFile(dst)
 	if string(currentPathContents) != "" {
-		fmt.Println(dst, "is not an empty file, skipping")
-		return
+		splitPath := strings.Split(dst, "/")
+		fmt.Println(splitPath[len(splitPath)-1], "is not an empty file, skipping")
+		return true, nil
 	}
 	in, err := os.Open(src)
 	if err != nil {
@@ -128,8 +129,8 @@ func createFiles(files []string) {
 				splitFilename := strings.Split(files[i], ".")
 				extension := splitFilename[len(splitFilename)-1]
 				splitPath := strings.Split(currentPath, "/")
-				err := copyBoilerplate(definedLanguages[extension], currentPath)
-				if err == nil {
+				nonEmpty, err := copyBoilerplate(definedLanguages[extension], currentPath)
+				if err == nil && !nonEmpty {
 					fmt.Println(
 						"\033[92m"+ // green
 							"boil"+
