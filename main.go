@@ -1,28 +1,27 @@
 package main
 
 import (
+	"bufio"
+	"errors"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 )
 
-type language struct {
-	filepath   string
-	extensions []string
-}
-
-var definedLanguages = []language{}
-var configPath = "~/code/boil/cauldron"
+var definedLanguages = map[string]string{}
+var configPath = "~/.config/boil"
 
 func constructLanguage(f os.FileInfo, path string) {
 	extensions := strings.Split(f.Name(), ".")[1:]
 	if len(extensions) >= 1 {
-		definedLanguages = append(definedLanguages, language{
-			filepath:   path,
-			extensions: extensions,
-		})
+		for i := range extensions {
+			definedLanguages[extensions[i]] = path
+		}
 	}
 }
 
@@ -32,6 +31,15 @@ func getDefinitionPath() string {
 		log.Fatal(err)
 	}
 	return strings.Replace(configPath, "~", dirname, 1)
+}
+
+func sliceContains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
 }
 
 func readLanguages() {
@@ -48,19 +56,96 @@ func readLanguages() {
 	}
 }
 
+func exists(name string) (bool, error) {
+	_, err := os.Stat(name)
+	if err == nil {
+		return true, nil
+	}
+	if errors.Is(err, os.ErrNotExist) {
+		return false, nil
+	}
+	return false, err
+}
+
+func displayHelp(args []string) {
+	if len(args) == 0 || sliceContains(args, "--help") || sliceContains(args, "-h") {
+		fmt.Println(`
+boil
+a touch wrapper to generate boilerplate files.
+    `)
+		touchHelp, _ := exec.Command("touch", "--help").Output()
+		fmt.Println(strings.Replace(string(touchHelp), "touch", "boil", 1))
+		os.Exit(0)
+	}
+}
+
+func copyBoilerplate(src, dst string) (err error) {
+	currentPathContents, err := ioutil.ReadFile(dst)
+	if string(currentPathContents) != "" {
+		fmt.Println(dst, "is not an empty file, skipping")
+		return
+	}
+	in, err := os.Open(src)
+	if err != nil {
+		return
+	}
+	defer in.Close()
+	out, err := os.Create(dst)
+	if err != nil {
+		return
+	}
+	defer func() {
+		cerr := out.Close()
+		if err == nil {
+			err = cerr
+		}
+	}()
+	if _, err = io.Copy(out, in); err != nil {
+		return
+	}
+	err = out.Sync()
+	return
+}
+
+func createFiles(files []string) {
+	cmd := exec.Command("touch", files...)
+	stderr, _ := cmd.StderrPipe()
+	if err := cmd.Start(); err != nil {
+		log.Fatal(err)
+	}
+
+	scanner := bufio.NewScanner(stderr)
+	for scanner.Scan() {
+		fmt.Println(scanner.Text())
+	}
+	// add boilerplate if file exists
+	for i := range files {
+		if !strings.HasPrefix(files[i], "-") { // if not argument
+			workingDir, _ := os.Getwd()
+			currentPath := workingDir + "/" + files[i]
+			isExistent, _ := exists(currentPath)
+			if isExistent {
+				splitFilename := strings.Split(files[i], ".")
+				extension := splitFilename[len(splitFilename)-1]
+				splitPath := strings.Split(currentPath, "/")
+				err := copyBoilerplate(definedLanguages[extension], currentPath)
+				if err == nil {
+					fmt.Println(
+						"\033[92m"+ // green
+							"boil"+
+							"\033[0m", // default color
+						"generated boilerplate:",
+						splitPath[len(splitPath)-1],
+					)
+				}
+			}
+		}
+	}
+}
+
 func main() {
 	readLanguages()
 	toBeCreated := os.Args[1:]
-	if len(toBeCreated) == 0 {
-		fmt.Println(`
-  boil
-  Create boilerplate files.
-
-  USAGE:
-  boil <filename>
-    `)
-	}
-	for i := range toBeCreated {
-		fmt.Println(toBeCreated[i])
-	}
+	displayHelp(toBeCreated)
+	createFiles(toBeCreated)
 }
