@@ -68,11 +68,13 @@ func exists(name string) (bool, error) {
 }
 
 func displayHelp(args []string) {
-	if len(args) == 0 || sliceContains(args, "--help") || sliceContains(args, "-h") {
-		fmt.Println(`
-boil
-a touch wrapper to generate boilerplate files.
-    `)
+	if len(args) == 0 {
+		fmt.Println("boil: missing file operand\nTry 'boil --help' for more information")
+		os.Exit(0)
+	}
+	if sliceContains(args, "--help") || sliceContains(args, "-h") {
+		fmt.Println("\nboil\na touch wrapper to generate boilerplate files.")
+		fmt.Println()
 		touchHelp, _ := exec.Command("touch", "--help").Output()
 		fmt.Println(strings.Replace(string(touchHelp), "touch", "boil", 1))
 		os.Exit(0)
