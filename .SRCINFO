@@ -1,0 +1,14 @@
+pkgbase = boil
+	pkgdesc = A wrapper for touch that generates boilerplate files.
+	pkgver = 1.0.0
+	pkgrel = 1
+	url = https://github.com/baris-inandi/boil
+	arch = x86_64
+	license = GPLv2
+	makedepends = git
+	makedepends = go
+	provides = boil
+	source = git+https://github.com/baris-inandi/boil
+	md5sums = SKIP
+
+pkgname = boil
