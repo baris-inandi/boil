@@ -25,16 +25,16 @@ md5sums=('SKIP')
 validpgpkeys=()
 
 pkgver() {
-  cd $pkgname
-  printf "${_pkgver}r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+    cd $pkgname
+    printf "${_pkgver}r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
 }
 
 build() {
-  cd $pkgname
-  make
+    cd $pkgname
+    make
 }
 
 package() {
-  cd $pkgname
-  make install
+    cd $pkgname
+    make install
 }
